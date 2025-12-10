@@ -15,7 +15,7 @@ class User(SQLModel, table=True):
   created_at: datetime = Field(default_factory=datetime.now)
 
   trips: List["Trip"] = Relationship(back_populates="participants", link_model=TripParticipant)
-
+  expenses: List["Expense"] = Relationship(back_populates="participants", link_model="ExpenseParticipant")
 class Trip(SQLModel, table=True):
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
   name: str
@@ -36,3 +36,8 @@ class Expense(SQLModel, table=True):
   created_at: datetime = Field(default_factory=datetime.now)
 
   trip: Optional[Trip] = Relationship(back_populates="expenses")
+  participants: List[User] = Relationship(back_populates="expenses", link_model="ExpenseParticipant")
+
+class ExpenseParticipant(SQLModel, table=True):
+  expense_id: str = Field(default=None, foreign_key="expense.id", primary_key=True)
+  user_id: str = Field(default=None, foreign_key="user.id", primary_key=True)
