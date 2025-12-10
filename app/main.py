@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.routers import trips, users
+from routers import trips, users
 from .database import create_db_and_tables
 
 @asynccontextmanager
