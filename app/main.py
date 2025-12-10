@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from app.routers import trips, users
 from .database import create_db_and_tables
 
 @asynccontextmanager
@@ -8,6 +9,9 @@ async def startup(app: FastAPI):
   yield
 
 app = FastAPI(lifespan=startup)
+
+app.include_router(users.router)
+app.include_router(trips.router)
 
 @app.get("/")
 async def root():
