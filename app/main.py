@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.routers import trips, users
+from routers import trips, users , expenses
 from .database import create_db_and_tables
 
 @asynccontextmanager
@@ -12,6 +12,7 @@ app = FastAPI(lifespan=startup)
 
 app.include_router(users.router)
 app.include_router(trips.router)
+app.include_router(expenses.router)
 
 @app.get("/")
 async def root():
