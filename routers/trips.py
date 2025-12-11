@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select
 from app.models import Trip, User
-from app.database import async_session, AsyncSession
+from app.database import get_session, AsyncSession
 from pydantic import BaseModel
 from datetime import datetime
 from sqlalchemy.orm import selectinload
@@ -34,10 +34,6 @@ class TripCreate(BaseModel):
 
 
 router = APIRouter(prefix="/trips", tags=["Trips"])
-
-async def get_session():
-    async with async_session() as session:
-        yield session
 
 @router.post("/", response_model=TripListResponse)
 async def create_trip(trip: TripCreate, session: AsyncSession = Depends(get_session)):

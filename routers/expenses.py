@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from app.models import Expense, User
-from app.database import async_session, AsyncSession
+from app.database import get_session, AsyncSession
 from typing import List, Optional
 from sqlmodel import select
 from datetime import datetime
@@ -39,10 +39,6 @@ class ExpenseCreate(BaseModel):
   participants: List[str]  
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
-
-async def get_session():
-  async with async_session() as session:
-    yield session
 
 @router.post("/", response_model=ExpensesListResponse)
 async def create_expense(expense_in: ExpenseCreate, session: AsyncSession = Depends(get_session)):

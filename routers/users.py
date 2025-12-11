@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select
 from app.models import User
-from app.database import async_session, AsyncSession
+from app.database import get_session, AsyncSession
 from pydantic import BaseModel
 
 class UserListResponse(BaseModel):
@@ -9,11 +9,6 @@ class UserListResponse(BaseModel):
     result: list[User]
 
 router = APIRouter(prefix="/users", tags=["Users"])
-
-# Dependency for async session
-async def get_session():
-    async with async_session() as session:
-        yield session
 
 @router.post("/", response_model=UserListResponse)
 async def create_user(user: User, session: AsyncSession = Depends(get_session)):
