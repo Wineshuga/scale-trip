@@ -95,11 +95,12 @@ scale-trip/
   - GET /trips/{trip_id} → retrieve a single trip
 
 - Expenses
-  - Coming soon: create, list, and associate expenses with trips and participants
-
+  - POST /expenses → create a new trip
+  - GET /expenses → list all trips
+  - GET /expenses/{expense_id} → retrieve a single trip
+    
 ## **Next Steps / Future Features**
 
-- Add full Expenses CRUD
 - Track balances per participant
 - Integrate wallets and 3rd-party payment (Paystack)
 - Dockerize the application for deployment
