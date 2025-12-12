@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app.models import Expense, User
 from app.database import get_session, AsyncSession
 from typing import List, Optional
@@ -8,13 +8,12 @@ from datetime import datetime
 from sqlalchemy.orm import selectinload
 
 class UserResponse(BaseModel):
+  model_config = ConfigDict(from_attributes=True)
   id: str
   name: str
 
-  class Config:
-      orm_mode = True
-
 class ExpenseResponse(BaseModel):
+  model_config = ConfigDict(from_attributes=True)
   id: str
   trip_id: str
   description: str
@@ -22,9 +21,6 @@ class ExpenseResponse(BaseModel):
   date: datetime
   note: Optional[str]
   participants: List[UserResponse]
-
-  class Config:
-      orm_mode = True
 
 class ExpensesListResponse(BaseModel):
   message: str

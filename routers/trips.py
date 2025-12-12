@@ -2,26 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import select
 from app.models import Trip, User
 from app.database import get_session, AsyncSession
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from sqlalchemy.orm import selectinload
 
 class UserResponse(BaseModel):
+  model_config = ConfigDict(from_attributes=True)
   id: str
   name: str
 
-  class Config:
-      orm_mode = True
 class TripResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: str
     name: str
     start_date: datetime | None = None
     end_date: datetime | None = None
     created_at: datetime
     participants: list[UserResponse] = []
-
-    class Config:
-        orm_mode = True
 class TripListResponse(BaseModel):
     message: str
     result: list[TripResponse]
