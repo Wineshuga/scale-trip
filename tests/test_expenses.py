@@ -27,8 +27,21 @@ async def test_create_expense(client: AsyncClient):
   assert "created_by" in expense
 
 @pytest.mark.asyncio
+async def test_list_expenses(client: AsyncClient):
+  await create_expenses(client)
+
+  resp = await client.get("/expenses/")
+  assert resp.status_code in (200, 201)
+
+  data = resp.json()
+  assert "result" in data
+
+  expenses = data["result"]
+  assert isinstance(expenses, list)
+  assert len(expenses) >= 2 
+
+@pytest.mark.asyncio
 async def test_get_expenses_per_trip(client: AsyncClient):
-  # create expense first
   trip_id = await create_expenses(client)
   assert trip_id
 
