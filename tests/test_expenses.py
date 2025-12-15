@@ -1,5 +1,5 @@
 import pytest
-from tests.utils import create_user_and_trip
+from tests.utils import create_user_and_trip, create_expenses
 from httpx import AsyncClient
 from datetime import datetime
 
@@ -28,29 +28,11 @@ async def test_create_expense(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_expenses_per_trip(client: AsyncClient):
-  _, created_trip = await create_user_and_trip(client)
-
   # create expense first
-  payload1 = {
-    "trip_id": created_trip["id"],
-    "description": "describing",
-    "amount": 1000,
-    "date": "2025-12-11T01:42:23.603586",
-    "note": "note",
-  }
-  payload2 = {
-    "trip_id": created_trip["id"],
-    "description": "describing more",
-    "amount": 2000,
-    "date": "2025-12-11T01:42:23.603586",
-    "note": "note",
-  }
-  resp1 = await client.post("/expenses/", json=payload1)
-  resp2 = await client.post("/expenses/", json=payload2)
-  assert resp1.status_code in (200, 201)
-  assert resp2.status_code in (200, 201)
+  trip_id = await create_expenses(client)
+  assert trip_id
 
-  resp = await client.get(f"/expenses/trip/{created_trip['id']}")
+  resp = await client.get(f"/expenses/trip/{trip_id['id']}")
   assert resp.status_code in (200, 201)
 
   data = resp.json()
@@ -58,6 +40,6 @@ async def test_get_expenses_per_trip(client: AsyncClient):
 
   expenses = data["result"]
   assert isinstance(expenses, list)
-  assert all(expense["trip_id"] == created_trip["id"] for expense in expenses)
+  assert all(expense["trip_id"] == trip_id["id"] for expense in expenses)
 
 
