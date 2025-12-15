@@ -76,8 +76,7 @@ async def get_expense(expense_id: str, session: AsyncSession = Depends(get_sessi
     raise HTTPException(status_code=404, detail="Expense not found")
   return {"message": "Expense retrieved successfully", "result": [expense]}
 
-# Get expenses per trip
-@router.get("/{trip_id}", response_model=ExpensesListResponse)
+@router.get("/trip/{trip_id}", response_model=ExpensesListResponse)
 async def get_expenses_per_trip(trip_id: str, session: AsyncSession = Depends(get_session)):
   result = await session.execute(
       select(Expense)
@@ -85,4 +84,4 @@ async def get_expenses_per_trip(trip_id: str, session: AsyncSession = Depends(ge
       .options(selectinload(Expense.participants))
   )
   expenses = result.scalars().all()
-  return {"message": "Expenses retrieved successfully", "result": [expenses]}
+  return {"message": "Expenses retrieved successfully", "result": expenses}
