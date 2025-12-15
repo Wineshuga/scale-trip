@@ -1,26 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
-from app.models import Expense, User
+from app.models import Expense, User, Trip
 from app.database import get_session, AsyncSession
 from typing import List, Optional
 from sqlmodel import select
 from datetime import datetime
 from sqlalchemy.orm import selectinload
+from app.schemas import ExpenseResponse
 
 class UserResponse(BaseModel):
   model_config = ConfigDict(from_attributes=True)
   id: str
   name: str
-
-class ExpenseResponse(BaseModel):
-  model_config = ConfigDict(from_attributes=True)
-  id: str
-  trip_id: str
-  description: str
-  amount: float
-  date: datetime
-  note: Optional[str]
-  participants: List[UserResponse]
 
 class ExpensesListResponse(BaseModel):
   message: str
@@ -32,23 +23,27 @@ class ExpenseCreate(BaseModel):
   amount: float
   date: datetime
   note: Optional[str] = None
-  participants: List[str]  
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
 @router.post("/", response_model=ExpensesListResponse)
 async def create_expense(expense_in: ExpenseCreate, session: AsyncSession = Depends(get_session)):
-  users = (await session.execute(
-    select(User).where(User.id.in_(expense_in.participants)))
-  ).scalars().all()
-  
+  # Load the trip and use its participants as the expense participants
+  trip_result = await session.execute(
+      select(Trip).where(Trip.id == expense_in.trip_id).options(selectinload(Trip.participants))
+  )
+  trip = trip_result.scalars().first()
+  if not trip:
+    raise HTTPException(status_code=404, detail="Trip not found")
+
   expense_obj = Expense(
     trip_id=expense_in.trip_id,
     description=expense_in.description,
     amount=expense_in.amount,
     date=expense_in.date,
     note=expense_in.note,
-    participants=users
+    participants=trip.participants,
+    creator_id=trip.participants[0].id, #current user
   )
   session.add(expense_obj)
   await session.commit()
