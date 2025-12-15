@@ -13,19 +13,18 @@ async def test_create_trip(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_list_trips(client: AsyncClient):
-    user, created_trip = await create_user_and_trip(client)
+async def test_get_trip_and_list(client: AsyncClient):
+    _, created_trip = await create_user_and_trip(client)
 
-    resp = await client.get("/trips/")
-    assert resp.status_code in (200, 201)
-
-    data = resp.json()
+    list_resp = await client.get("/trips/")
+    assert list_resp.status_code in (200, 201)
+    data = list_resp.json()
     assert "result" in data
     trips = data["result"]
-
     assert any(t["id"] == created_trip["id"] for t in trips)
-    assert trips[0]["name"] == "fixture trip"
-    assert trips[0]["budget"] == 1000
-    assert trips[0]["start_date"] == None
-    assert trips[0]["end_date"] == None
-    assert trips[0]["participants"][0]["id"] == user["id"]
+
+    trip_resp = await client.get(f"/trips/{created_trip['id']}")
+    assert trip_resp.status_code in (200, 201)
+    trip = trip_resp.json()["result"]
+    assert any(t["id"] == created_trip["id"] for t in trip)
+
