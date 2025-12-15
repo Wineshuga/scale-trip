@@ -5,30 +5,25 @@ from app.database import get_session, AsyncSession
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from sqlalchemy.orm import selectinload
+from app.schemas import TripResponse
+from typing import Optional
 
 class UserResponse(BaseModel):
   model_config = ConfigDict(from_attributes=True)
   id: str
   name: str
 
-class TripResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: str
-    name: str
-    start_date: datetime | None = None
-    end_date: datetime | None = None
-    created_at: datetime
-    participants: list[UserResponse] = []
 class TripListResponse(BaseModel):
     message: str
     result: list[TripResponse]
 
 class TripCreate(BaseModel):
     name: str
+    budget: float | None = None
+    destination: Optional[str] = None
     start_date: datetime | None = None
     end_date: datetime | None = None
     participants: list[str] = []
-
 
 router = APIRouter(prefix="/trips", tags=["Trips"])
 
@@ -40,6 +35,8 @@ async def create_trip(trip: TripCreate, session: AsyncSession = Depends(get_sess
 
     trip_obj = Trip(
         name=trip.name,
+        budget=trip.budget,
+        destination=trip.destination,
         start_date=trip.start_date,
         end_date=trip.end_date,
         participants=users
@@ -49,7 +46,10 @@ async def create_trip(trip: TripCreate, session: AsyncSession = Depends(get_sess
     result = await session.execute(
         select(Trip)
         .where(Trip.id == trip_obj.id)
-        .options(selectinload(Trip.participants))
+        .options(            
+            selectinload(Trip.participants),
+            selectinload(Trip.expenses)
+        )
     )
     trip = result.scalars().first()
     return {"message": "Trip created successfully", "result": [trip]}
@@ -57,7 +57,10 @@ async def create_trip(trip: TripCreate, session: AsyncSession = Depends(get_sess
 @router.get("/", response_model=TripListResponse)
 async def list_trips(session: AsyncSession = Depends(get_session)):
     result = await session.execute(
-        select(Trip).options(selectinload(Trip.participants))
+        select(Trip).options(
+            selectinload(Trip.participants),
+            selectinload(Trip.expenses)
+        )
     )
     trips = result.scalars().all()
     return {"message": "Trips retrieved successfully", "result": trips}
@@ -66,7 +69,10 @@ async def list_trips(session: AsyncSession = Depends(get_session)):
 async def get_trip(trip_id: str, session: AsyncSession = Depends(get_session)):
     trip_obj = await session.execute(
         select(Trip).where(Trip.id == trip_id)
-        .options(selectinload(Trip.participants))
+        .options(
+            selectinload(Trip.participants),
+            selectinload(Trip.expenses)
+        )
     )
     trip = trip_obj.scalars().first()
     if not trip:
