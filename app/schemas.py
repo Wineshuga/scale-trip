@@ -5,7 +5,8 @@ from datetime import datetime
 
 class UserMini(BaseModel):
     id: str
-    name: str
+    username: str
+    full_name: str
     email: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -45,8 +46,10 @@ class ExpenseResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    name: str
+    username: str
+    full_name: str
     email: str
+    disabled: Optional[bool]
     wallet_balance: float
     created_at: datetime
     trips: List[TripResponse] = []

@@ -17,9 +17,12 @@ class ExpenseParticipant(SQLModel, table=True):
 class User(SQLModel, table=True):
   """User in the travel cost-sharing app"""
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-  name: str
+  username: str = Field(unique=True, index=True)
+  full_name: str
   email: str = Field(unique=True, index=True)
+  hashed_password: str
   wallet_balance: float = 0.0
+  disabled: Optional[bool] = False
   created_at: datetime = Field(default_factory=datetime.now)
 
   trips: Mapped[List["Trip"]] = Relationship(back_populates="participants", link_model=TripParticipant)
