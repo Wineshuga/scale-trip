@@ -49,6 +49,7 @@ class UserResponse(BaseModel):
     username: str
     full_name: str
     email: str
+    disabled: Optional[bool]
     wallet_balance: float
     created_at: datetime
     trips: List[TripResponse] = []
