@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from routers import trips, users , expenses
-from .database import create_db_and_tables
+from .database import create_db_and_tables, get_session
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
 from pwdlib import PasswordHash
@@ -10,6 +10,8 @@ import jwt
 from jwt.exceptions import InvalidTokenError
 from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from datetime import datetime, timedelta, timezone
+from sqlmodel import select
+from app.models import User as UserModel
 
 @asynccontextmanager
 async def startup(app: FastAPI):
@@ -19,23 +21,6 @@ async def startup(app: FastAPI):
 SECRET_KEY = SECRET_KEY
 ALGORITHM = ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = int(ACCESS_TOKEN_EXPIRE_MINUTES)
-
-fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "hashed_password": "secret",
-        "disabled": False,
-    },
-    "alice": {
-        "username": "alice",
-        "full_name": "Alice Wonderson",
-        "email": "alice@example.com",
-        "hashed_password": "fakehashedsecret2",
-        "disabled": True,
-    },
-}
 
 class Token(BaseModel):
     access_token: str
@@ -65,14 +50,15 @@ def get_password_hash(password):
     return password_hash.hash(password)
 
 
-def get_user(db, username: str):
-    if username in db:
-        user_dict = db[username]
-        return UserInDB(**user_dict)
+async def get_user_from_db(session, username: str):
+    """Query the database for a user by username"""
+    result = await session.execute(select(UserModel).where(UserModel.username == username))
+    return result.scalars().first()
 
 
-def authenticate_user(fake_db, username: str, password: str):
-    user = get_user(fake_db, username)
+async def authenticate_user(session, username: str, password: str):
+    """Authenticate user against database"""
+    user = await get_user_from_db(session, username)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -90,7 +76,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session = Depends(get_session)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -104,7 +90,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         token_data = TokenData(username=username)
     except InvalidTokenError:
         raise credentials_exception
-    user = get_user(fake_users_db, username=token_data.username)
+    user = await get_user_from_db(session, username=token_data.username)
     if user is None:
         raise credentials_exception
     return user
@@ -120,8 +106,10 @@ async def get_current_active_user(
 
 @app.post("/token")
 async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], ) -> Token:
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    session = Depends(get_session)
+) -> Token:
+    user = await authenticate_user(session, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
