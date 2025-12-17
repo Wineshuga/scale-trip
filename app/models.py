@@ -21,6 +21,7 @@ class User(SQLModel, table=True):
   full_name: str
   email: str = Field(unique=True, index=True)
   wallet_balance: float = 0.0
+  disabled: Optional[bool] = None
   created_at: datetime = Field(default_factory=datetime.now)
 
   trips: Mapped[List["Trip"]] = Relationship(back_populates="participants", link_model=TripParticipant)
