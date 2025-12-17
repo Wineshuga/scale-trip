@@ -1,130 +1,39 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from app.auth import oauth2_scheme
 from contextlib import asynccontextmanager
-from pydantic import BaseModel
 from routers import trips, users , expenses
-from .database import create_db_and_tables, get_session
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from typing import Annotated
-from pwdlib import PasswordHash
-import jwt
-from jwt.exceptions import InvalidTokenError
-from app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-from datetime import datetime, timedelta, timezone
+from .database import create_db_and_tables
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
-from app.models import User as UserModel
+from sqlalchemy.orm import selectinload
+from app.models import User
+from app.database import get_session, AsyncSession
+from pydantic import BaseModel
+from app.auth import get_password_hash
+from app.schemas import UserResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from typing import Annotated
+from app.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, Token
+from datetime import timedelta
+from app.auth import get_current_active_user
+
 
 @asynccontextmanager
 async def startup(app: FastAPI):
   await create_db_and_tables()
   yield
 
-SECRET_KEY = SECRET_KEY
-ALGORITHM = ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES = int(ACCESS_TOKEN_EXPIRE_MINUTES)
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-class TokenData(BaseModel):
-    username: str | None = None
-class User(BaseModel):
-    username: str
-    email: str | None = None
-    full_name: str | None = None
-    disabled: bool | None = None
-
-class UserInDB(User):
-    hashed_password: str
-
-password_hash = PasswordHash.recommended()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 app = FastAPI(lifespan=startup)
 
-def verify_password(plain_password, hashed_password):
-    return password_hash.verify(plain_password, hashed_password)
+class UserCreate(BaseModel):
+    username: str
+    full_name: str
+    email: str
+    password: str
 
-def get_password_hash(password):
-    return password_hash.hash(password)
-
-
-async def get_user_from_db(session, username: str):
-    """Query the database for a user by username"""
-    result = await session.execute(select(UserModel).where(UserModel.username == username))
-    return result.scalars().first()
-
-
-async def authenticate_user(session, username: str, password: str):
-    """Authenticate user against database"""
-    user = await get_user_from_db(session, username)
-    if not user:
-        return False
-    if not verify_password(password, user.hashed_password):
-        return False
-    return user
-
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire =datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-
-async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], session = Depends(get_session)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(username=username)
-    except InvalidTokenError:
-        raise credentials_exception
-    user = await get_user_from_db(session, username=token_data.username)
-    if user is None:
-        raise credentials_exception
-    return user
-
-
-async def get_current_active_user(
-    current_user: Annotated[User, Depends(get_current_user)],
-):
-    if current_user.disabled:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-
-@app.post("/token")
-async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    session = Depends(get_session)
-) -> Token:
-    user = await authenticate_user(session, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
-    return Token(access_token=access_token, token_type="bearer")
-
-@app.get("/users/me")
-async def read_users_me(
-    current_user: Annotated[User, Depends(get_current_active_user)],
-):
-    return current_user
+class UserListResponse(BaseModel):
+    message: str
+    result: list[UserResponse]
 
 app.include_router(users.router, dependencies=[Depends(oauth2_scheme)])
 app.include_router(trips.router, dependencies=[Depends(oauth2_scheme)])
@@ -134,4 +43,55 @@ app.include_router(expenses.router, dependencies=[Depends(oauth2_scheme)])
 async def root():
   return {"message": "Scale-Trip API is running 🚀"}
 
+@app.post("/register", response_model=UserListResponse)
+async def create_user(payload: UserCreate, session: AsyncSession = Depends(get_session)):
+    hashed_password = get_password_hash(payload.password)
+    user = User(
+        username=payload.username,
+        full_name=payload.full_name,
+        email=payload.email,
+        hashed_password=hashed_password
+    )
+    try:
+        session.add(user)
+        await session.commit()
+        result = await session.execute(
+            select(User)
+            .options(
+                selectinload(User.trips),
+                selectinload(User.expenses_created),
+                selectinload(User.expenses),
+            )
+            .where(User.id == user.id)
+        )
+        user_loaded = result.scalars().first()
+        return {"message": "User created successfully", "result": [user_loaded]}
+    except IntegrityError as e:
+        await session.rollback()
+        if "ix_user_email" in str(e) or "unique constraint" in str(e).lower():
+            raise HTTPException(status_code=409, detail="Email already exists")
+        raise HTTPException(status_code=400, detail="Database constraint violation")
 
+@app.post("/token")
+async def login_for_access_token(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session: AsyncSession = Depends(get_session)
+) -> Token:
+    user = await authenticate_user(session, form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
+    )
+    return Token(access_token=access_token, token_type="bearer")
+
+
+@app.get("/users/me/", response_model=User)
+async def read_users_me(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+):
+    return current_user
