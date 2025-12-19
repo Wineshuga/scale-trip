@@ -7,6 +7,8 @@ from datetime import datetime
 from sqlalchemy.orm import selectinload
 from app.schemas import TripResponse
 from typing import Optional
+from app.services.logic import calculate_trip_balances, simplify_balances
+from app.auth import get_current_user
 
 class UserResponse(BaseModel):
   model_config = ConfigDict(from_attributes=True)
@@ -28,7 +30,7 @@ class TripCreate(BaseModel):
 router = APIRouter(prefix="/trips", tags=["Trips"])
 
 @router.post("/", response_model=TripListResponse)
-async def create_trip(trip: TripCreate, session: AsyncSession = Depends(get_session)):
+async def create_trip(trip: TripCreate, session: AsyncSession = Depends(get_session), current_user: User = Depends(get_current_user)):
     users = (await session.execute(
         select(User).where(User.id.in_(trip.participants)))
     ).scalars().all()
@@ -39,7 +41,7 @@ async def create_trip(trip: TripCreate, session: AsyncSession = Depends(get_sess
         destination=trip.destination,
         start_date=trip.start_date,
         end_date=trip.end_date,
-        participants=users
+        participants=list(users + [current_user])
     )
     session.add(trip_obj)
     await session.commit()
@@ -78,3 +80,13 @@ async def get_trip(trip_id: str, session: AsyncSession = Depends(get_session)):
     if not trip:
         raise HTTPException(status_code=404, detail="Trip not found")
     return {"message": "Trip retrieved successfully", "result": [trip]}
+
+@router.get("/{trip_id}/balances")
+async def get_trip_balances(trip_id: str, session: AsyncSession = Depends(get_session)):
+    balances = await calculate_trip_balances(trip_id, session)
+    settlements = simplify_balances(balances)
+    return {
+        "message": "Balances retrieved successfully",
+        "balances": balances,
+        "settlements": settlements
+    }
