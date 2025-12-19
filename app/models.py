@@ -27,7 +27,7 @@ class User(SQLModel, table=True):
 
   trips: Mapped[List["Trip"]] = Relationship(back_populates="participants", link_model=TripParticipant)
   
-  expenses_created: Mapped[List["Expense"]] = Relationship(back_populates="creator")
+  expenses_created: Mapped[List["Expense"]] = Relationship(back_populates="paid_by")
   
   expenses: Mapped[List["Expense"]] = Relationship(back_populates="participants", link_model=ExpenseParticipant)
 
@@ -51,7 +51,7 @@ class Expense(SQLModel, table=True):
   """Expense split among trip participants"""
   id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
   trip_id: str = Field(foreign_key="trip.id")
-  creator_id: str = Field(foreign_key="user.id")
+  payer_id: str = Field(foreign_key="user.id")
   description: str
   amount: float
   date: datetime
@@ -60,7 +60,7 @@ class Expense(SQLModel, table=True):
 
   trip: Mapped[Trip] = Relationship(back_populates="expenses")
   
-  creator: Mapped[User] = Relationship(back_populates="expenses_created")
+  paid_by: Mapped[User] = Relationship(back_populates="expenses_created")
   
   participants: Mapped[List[User]] = Relationship(back_populates="expenses", link_model=ExpenseParticipant)
   
