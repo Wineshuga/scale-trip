@@ -39,7 +39,7 @@ class ExpenseResponse(BaseModel):
     amount: float
     date: datetime
     note: Optional[str]
-    created_by: Optional[UserMini] = None
+    paid_by: UserMini
     participants: List[UserMini] = []
 
     model_config = ConfigDict(from_attributes=True)
@@ -52,8 +52,8 @@ class UserResponse(BaseModel):
     disabled: Optional[bool]
     wallet_balance: float
     created_at: datetime
-    trips: List[TripResponse] = []
-    expenses_created: List[ExpenseMini] = []
-    expenses_participating: List[ExpenseMini] = []
+    # trips: List[TripResponse] = []
+    # expenses_created: List[ExpenseMini] = []
+    # expenses_participating: List[ExpenseMini] = []
 
     model_config = ConfigDict(from_attributes=True)

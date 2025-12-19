@@ -41,7 +41,7 @@ def get_password_hash(password):
     return password_hash.hash(password)
 
 
-async def get_user_from_db(session: AsyncSession = Depends(get_session), username: str = ""):
+async def get_user_from_db(session: AsyncSession, username: str = ""):
     """Query the database for a user by username"""
     result = await session.execute(select(UserModel).where(UserModel.username == username))
     return result.scalars().first()

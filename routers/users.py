@@ -14,11 +14,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 @router.get("/", response_model=UserListResponse)
 async def list_users(session: AsyncSession = Depends(get_session)):
     result = await session.execute(
-        select(User).options(
-            selectinload(User.trips),
-            selectinload(User.expenses_created),
-            selectinload(User.expenses),
-        )
+        select(User)
     )
     users = result.scalars().all()
     return {"message": "Users retrieved successfully", "result": users}
