@@ -64,3 +64,11 @@ class Expense(SQLModel, table=True):
   
   participants: Mapped[List[User]] = Relationship(back_populates="expenses", link_model=ExpenseParticipant)
   
+class Payment(SQLModel, table=True):
+  """Payment record for settling expenses"""
+  id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+  trip_id: str = Field(foreign_key="trip.id")
+  payer_id: str = Field(foreign_key="user.id")
+  payee_id: str = Field(foreign_key="user.id")
+  amount: float
+  date: datetime = Field(default_factory=datetime.now)
