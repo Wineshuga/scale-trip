@@ -5,9 +5,9 @@ from app.database import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-async def calculate_trip_balances(trip_id: str, session: AsyncSession) -> Dict[str, float]:
+async def calculate_trip_balances(trip_id: str, session: AsyncSession) -> Dict[str, int]:
     """Return net balance per user. Positive = owed, Negative = owes."""
-    balances = defaultdict(float)
+    balances = defaultdict(int)
 
     result = await session.execute(
         select(Expense).where(Expense.trip_id == trip_id).options(selectinload(Expense.participants))
@@ -16,18 +16,24 @@ async def calculate_trip_balances(trip_id: str, session: AsyncSession) -> Dict[s
 
     for expense in expenses:
         participants = list({p.id for p in expense.participants} | {expense.payer_id})
-        share = expense.amount / len(participants)
+        num_participants = len(participants)
+        base_share = expense.amount // num_participants
+        remainder = expense.amount % num_participants
 
         # Credit payer
         balances[expense.payer_id] += expense.amount
 
         # Subtract each participant's share
-        for user_id in participants:
-            balances[user_id] -= share
+        for i, user_id in enumerate(participants):
+            balances[user_id] -= base_share
+
+            # Distribute leftover kobo to first N users
+            if i < remainder:
+                balances[user_id] -= 1
 
     return balances
 
-def simplify_balances(balances: Dict[str, float]) -> List[Dict]:
+def simplify_balances(balances: Dict[str, int]) -> List[Dict]:
     """Return minimal list of settlements: who pays who and how much."""
     debtors = []
     creditors = []

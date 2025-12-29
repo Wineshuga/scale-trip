@@ -88,16 +88,17 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class WalletResponse(BaseModel):
-    balance: float
+    user: UserResponse
     transactions: list[Payment]
 
 class WalletBalanceResponse(BaseModel):
     message: str
+    user: list[dict[str, str]]
     balance: list[dict[str, float | int]]  # in kobo
 
 class TopupRequest(BaseModel):
     user_id: str
-    amount: int # in kobo
+    amount: float # in naira
 
 class PaymentRequest(BaseModel):
     trip_id: str

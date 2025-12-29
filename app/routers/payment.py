@@ -16,12 +16,12 @@ async def get_wallet(user_id: str, session: AsyncSession = Depends(get_session))
 
     payments = await session.execute(
         select(Payment)
-        .where(Payment.payer_id == user_id or Payment.payee_id == user_id)
+        .where((Payment.payer_id == user_id) | (Payment.payee_id == user_id))
     )
     payments_list = payments.scalars().all()
 
     return WalletResponse(
-        balance=user.wallet_balance,
+        user=user,
         transactions=payments_list
     )
 
@@ -44,13 +44,18 @@ async def top_up_wallet(payload: TopupRequest, session: AsyncSession = Depends(g
         raise HTTPException(status_code=404, detail="User not found")
 
     # Here, you would verify the payment with Paystack's API
-    user.wallet_balance += payload.amount # in kobo
-    user.wallet_balance_in_naira = user.wallet_balance / 100
+    user.wallet_balance_in_naira += payload.amount
+    user.wallet_balance = user.wallet_balance_in_naira * 100 # in kobo
     await session.commit()
     await session.refresh(user)
 
     return WalletBalanceResponse(
         message="Wallet topped up successfully",
+        user=[
+            {"id": user.id,
+             "username": user.username
+            }
+        ],
         balance=[
             {"naira": user.wallet_balance_in_naira},
             {"kobo": user.wallet_balance}
@@ -67,6 +72,7 @@ async def pay_from_wallet(payload: PaymentRequest, session: AsyncSession = Depen
         raise HTTPException(status_code=400, detail="Insufficient wallet balance")
 
     user.wallet_balance -= payload.amount
+    user.wallet_balance_in_naira = user.wallet_balance / 100
 
     payee = await session.get(User, payload.payee_id)
     if not payee:
@@ -87,6 +93,11 @@ async def pay_from_wallet(payload: PaymentRequest, session: AsyncSession = Depen
 
     return WalletBalanceResponse(
         message="Payment successful",
+        user=[
+            {"id": user.id,
+             "username": user.username
+            }
+        ],
         balance=[
             {"naira": user.wallet_balance_in_naira},
             {"kobo": user.wallet_balance}
