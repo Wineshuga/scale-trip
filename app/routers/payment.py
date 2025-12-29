@@ -1,0 +1,99 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import select
+from app.models import User, Payment
+from app.database import get_session, AsyncSession
+from pydantic import BaseModel
+from app.schemas import WalletResponse
+from sqlalchemy.orm import selectinload
+
+class WalletBalanceResponse(BaseModel):
+    message: str
+    balance: float
+
+class TopupRequest(BaseModel):
+    user_id: str
+    amount: float
+
+class PaymentRequest(BaseModel):
+    trip_id: str
+    payer_id: str
+    payee_id: str
+    amount: float
+
+router = APIRouter(prefix="/wallet", tags=["Wallet"])
+
+@router.get("/{user_id}", response_model=WalletResponse)
+async def get_wallet(user_id: str, session: AsyncSession = Depends(get_session)):
+    user = await session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    payments = await session.execute(
+        select(Payment)
+        .where(Payment.payer_id == user_id or Payment.payee_id == user_id)
+        .options(selectinload(Payment.trip))
+    )
+    payments_list = payments.scalars().all()
+
+    return WalletResponse(
+        balance=user.wallet_balance,
+        transactions=payments_list
+    )
+
+@router.post("/topup-request")
+async def request_top_up(payload: TopupRequest, session: AsyncSession = Depends(get_session)):
+    user = await session.get(User, payload.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # create a payment request with Paystack's API
+    # integrate paystack
+
+    return {"message": "Top-up initiated", "payment_link": "https://paystack.mock/"}
+
+@router.post("/confirm", response_model=WalletBalanceResponse)
+async def top_up_wallet(payload: TopupRequest, session: AsyncSession = Depends(get_session)):
+    user = await session.get(User, payload.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Here, you would verify the payment with Paystack's API
+    user.wallet_balance += payload.amount
+    await session.commit()
+    await session.refresh(user)
+
+    return WalletBalanceResponse(
+        message="Wallet topped up successfully",
+        balance=user.wallet_balance
+    )
+
+@router.post("/pay", response_model=WalletBalanceResponse)
+async def pay_from_wallet(payload: PaymentRequest, session: AsyncSession = Depends(get_session)):
+    user = await session.get(User, payload.payer_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.wallet_balance < payload.amount:
+        raise HTTPException(status_code=400, detail="Insufficient wallet balance")
+
+    user.wallet_balance -= payload.amount
+
+    payee = await session.get(User, payload.payee_id)
+    if not payee:
+        raise HTTPException(status_code=404, detail="Payee not found")
+    payee.wallet_balance += payload.amount
+
+    payment_record = Payment(
+        trip_id=payload.trip_id,
+        payer_id=payload.payer_id,
+        payee_id=payload.payee_id,
+        amount=payload.amount
+    )
+    session.add(payment_record)
+    await session.commit()
+    await session.refresh(user)
+
+    return WalletBalanceResponse(
+        message="Payment successful",
+        balance=user.wallet_balance
+    )
