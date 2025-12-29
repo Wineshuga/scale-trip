@@ -87,6 +87,7 @@ async def get_trip_balances(trip_id: str, session: AsyncSession = Depends(get_se
     settlements = simplify_balances(balances)
     return {
         "message": "Balances retrieved successfully",
+        "trip_id": trip_id,
         "balances": balances,
         "settlements": settlements
     }
