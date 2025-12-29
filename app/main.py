@@ -1,16 +1,15 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from app.auth import oauth2_scheme
 from contextlib import asynccontextmanager
-from routers import trips, users , expenses
+from app.routers import trips, users , expenses, payment
 from .database import create_db_and_tables
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from app.models import User
 from app.database import get_session, AsyncSession
-from pydantic import BaseModel
 from app.auth import get_password_hash
-from app.schemas import UserResponse
+from app.schemas import UserListResponse, UserCreate, UserResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 from app.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, Token
@@ -25,19 +24,10 @@ async def startup(app: FastAPI):
 
 app = FastAPI(lifespan=startup)
 
-class UserCreate(BaseModel):
-    username: str
-    full_name: str
-    email: str
-    password: str
-
-class UserListResponse(BaseModel):
-    message: str
-    result: list[UserResponse]
-
 app.include_router(users.router, dependencies=[Depends(oauth2_scheme)])
 app.include_router(trips.router, dependencies=[Depends(oauth2_scheme)])
 app.include_router(expenses.router, dependencies=[Depends(oauth2_scheme)])
+app.include_router(payment.router, dependencies=[Depends(oauth2_scheme)])
 
 @app.get("/")
 async def root():
@@ -87,10 +77,10 @@ async def login_for_access_token(
     access_token = create_access_token(
         data={"sub": user.username}, expires_delta=access_token_expires
     )
-    return Token(access_token=access_token, token_type="bearer")
+    return Token(user_id=user.id, access_token=access_token, token_type="bearer")
 
 
-@app.get("/users/me/", response_model=User)
+@app.get("/current_user", response_model=UserResponse)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):

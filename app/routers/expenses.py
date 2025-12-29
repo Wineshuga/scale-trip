@@ -6,24 +6,8 @@ from typing import List, Optional
 from sqlmodel import select
 from datetime import datetime
 from sqlalchemy.orm import selectinload
-from app.schemas import ExpenseResponse
+from app.schemas import ExpensesListResponse, ExpenseCreate
 from app.auth import get_current_user
-
-class UserResponse(BaseModel):
-  model_config = ConfigDict(from_attributes=True)
-  id: str
-  name: str
-
-class ExpensesListResponse(BaseModel):
-  message: str
-  result: List[ExpenseResponse]
-
-class ExpenseCreate(BaseModel):
-  trip_id: str
-  description: str
-  amount: float
-  date: datetime
-  note: Optional[str] = None
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
@@ -41,7 +25,8 @@ async def create_expense(expense_in: ExpenseCreate, session: AsyncSession = Depe
   expense_obj = Expense(
     trip_id=expense_in.trip_id,
     description=expense_in.description,
-    amount=expense_in.amount,
+    amount=expense_in.amount * 100,  # converting to kobo
+    amount_in_naira=expense_in.amount,
     date=expense_in.date,
     note=expense_in.note,
     participants=trip.participants,

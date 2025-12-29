@@ -16,6 +16,7 @@ ALGORITHM = ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = int(ACCESS_TOKEN_EXPIRE_MINUTES)
 
 class Token(BaseModel):
+    user_id: str
     access_token: str
     token_type: str
 
