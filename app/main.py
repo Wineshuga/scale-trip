@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from app.auth import oauth2_scheme
 from contextlib import asynccontextmanager
-from app.routers import trips, users , expenses
+from app.routers import trips, users , expenses, payment
 from .database import create_db_and_tables
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
@@ -38,6 +38,7 @@ class UserListResponse(BaseModel):
 app.include_router(users.router, dependencies=[Depends(oauth2_scheme)])
 app.include_router(trips.router, dependencies=[Depends(oauth2_scheme)])
 app.include_router(expenses.router, dependencies=[Depends(oauth2_scheme)])
+app.include_router(payment.router, dependencies=[Depends(oauth2_scheme)])
 
 @app.get("/")
 async def root():
