@@ -8,9 +8,8 @@ from sqlmodel import select
 from sqlalchemy.orm import selectinload
 from app.models import User
 from app.database import get_session, AsyncSession
-from pydantic import BaseModel
 from app.auth import get_password_hash
-from app.schemas import UserResponse
+from app.schemas import UserListResponse, UserCreate
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 from app.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, Token
@@ -24,16 +23,6 @@ async def startup(app: FastAPI):
   yield
 
 app = FastAPI(lifespan=startup)
-
-class UserCreate(BaseModel):
-    username: str
-    full_name: str
-    email: str
-    password: str
-
-class UserListResponse(BaseModel):
-    message: str
-    result: list[UserResponse]
 
 app.include_router(users.router, dependencies=[Depends(oauth2_scheme)])
 app.include_router(trips.router, dependencies=[Depends(oauth2_scheme)])

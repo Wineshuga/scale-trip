@@ -50,6 +50,16 @@ class UserResponse(BaseModel):
   id: str
   name: str
 
+class UserCreate(BaseModel):
+    username: str
+    full_name: str
+    email: str
+    password: str
+
+class UserListResponse(BaseModel):
+    message: str
+    result: list[UserResponse]
+
 class ExpensesListResponse(BaseModel):
   message: str
   result: List[ExpenseResponse]
