@@ -4,7 +4,6 @@ from app.models import User, Payment
 from app.database import get_session, AsyncSession
 from pydantic import BaseModel
 from app.schemas import WalletResponse, WalletBalanceResponse, TopupRequest, PaymentRequest
-from sqlalchemy.orm import selectinload
 
 router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
@@ -17,7 +16,6 @@ async def get_wallet(user_id: str, session: AsyncSession = Depends(get_session))
     payments = await session.execute(
         select(Payment)
         .where(Payment.payer_id == user_id or Payment.payee_id == user_id)
-        .options(selectinload(Payment.trip))
     )
     payments_list = payments.scalars().all()
 
