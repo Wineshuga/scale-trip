@@ -44,6 +44,22 @@ class ExpenseResponse(BaseModel):
     participants: List[UserMini] = []
 
     model_config = ConfigDict(from_attributes=True)
+    
+class UserResponse(BaseModel):
+  model_config = ConfigDict(from_attributes=True)
+  id: str
+  name: str
+
+class ExpensesListResponse(BaseModel):
+  message: str
+  result: List[ExpenseResponse]
+
+class ExpenseCreate(BaseModel):
+  trip_id: str
+  description: str
+  amount: int # in kobo
+  date: datetime
+  note: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: str

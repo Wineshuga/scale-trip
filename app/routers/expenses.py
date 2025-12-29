@@ -6,24 +6,8 @@ from typing import List, Optional
 from sqlmodel import select
 from datetime import datetime
 from sqlalchemy.orm import selectinload
-from app.schemas import ExpenseResponse
+from app.schemas import ExpensesListResponse, ExpenseCreate
 from app.auth import get_current_user
-
-class UserResponse(BaseModel):
-  model_config = ConfigDict(from_attributes=True)
-  id: str
-  name: str
-
-class ExpensesListResponse(BaseModel):
-  message: str
-  result: List[ExpenseResponse]
-
-class ExpenseCreate(BaseModel):
-  trip_id: str
-  description: str
-  amount: float
-  date: datetime
-  note: Optional[str] = None
 
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
