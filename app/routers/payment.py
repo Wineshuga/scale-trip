@@ -6,6 +6,8 @@ from app.schemas import WalletResponse, WalletBalanceResponse, TopupRequest, Pay
 
 router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
+# get payer id, payee id, trip id, amount from Settlement calculation
+
 @router.get("/{user_id}", response_model=WalletResponse)
 async def get_wallet(user_id: str, session: AsyncSession = Depends(get_session)):
     user = await session.get(User, user_id)
