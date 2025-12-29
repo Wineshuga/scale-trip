@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from app.auth import oauth2_scheme
 from contextlib import asynccontextmanager
-from routers import trips, users , expenses
+from app.routers import trips, users , expenses
 from .database import create_db_and_tables
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
