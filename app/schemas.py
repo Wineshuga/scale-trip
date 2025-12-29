@@ -81,7 +81,7 @@ class WalletResponse(BaseModel):
 
 class WalletBalanceResponse(BaseModel):
     message: str
-    balance: int  # in kobo
+    balance: list[dict[str, float | int]]  # in kobo
 
 class TopupRequest(BaseModel):
     user_id: str
