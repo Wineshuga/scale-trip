@@ -2,6 +2,7 @@
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 from datetime import datetime
+from app.models import Payment
 
 class UserMini(BaseModel):
     id: str
@@ -57,3 +58,8 @@ class UserResponse(BaseModel):
     # expenses_participating: List[ExpenseMini] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+class WalletResponse(BaseModel):
+    balance: float
+    transactions: list[Payment]
+
