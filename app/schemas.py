@@ -44,7 +44,7 @@ class ExpenseResponse(BaseModel):
     participants: List[UserMini] = []
 
     model_config = ConfigDict(from_attributes=True)
-    
+
 class UserResponse(BaseModel):
   model_config = ConfigDict(from_attributes=True)
   id: str
@@ -78,4 +78,18 @@ class UserResponse(BaseModel):
 class WalletResponse(BaseModel):
     balance: float
     transactions: list[Payment]
+
+class WalletBalanceResponse(BaseModel):
+    message: str
+    balance: int  # in kobo
+
+class TopupRequest(BaseModel):
+    user_id: str
+    amount: int # in kobo
+
+class PaymentRequest(BaseModel):
+    trip_id: str
+    payer_id: str
+    payee_id: str
+    amount: int # in kobo
 

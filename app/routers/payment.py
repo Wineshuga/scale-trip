@@ -3,22 +3,8 @@ from sqlmodel import select
 from app.models import User, Payment
 from app.database import get_session, AsyncSession
 from pydantic import BaseModel
-from app.schemas import WalletResponse
+from app.schemas import WalletResponse, WalletBalanceResponse, TopupRequest, PaymentRequest
 from sqlalchemy.orm import selectinload
-
-class WalletBalanceResponse(BaseModel):
-    message: str
-    balance: float
-
-class TopupRequest(BaseModel):
-    user_id: str
-    amount: float
-
-class PaymentRequest(BaseModel):
-    trip_id: str
-    payer_id: str
-    payee_id: str
-    amount: float
 
 router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
