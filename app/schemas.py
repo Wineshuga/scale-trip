@@ -15,7 +15,8 @@ class UserMini(BaseModel):
 class ExpenseMini(BaseModel):
     id: str
     description: str
-    amount: float
+    amount: int # in kobo
+    amount_in_naira: float
     date: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -23,8 +24,7 @@ class ExpenseMini(BaseModel):
 class TripResponse(BaseModel):
     id: str
     name: str
-    budget: float | None = None
-    destination: Optional[str] = None
+    note: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     created_at: datetime
@@ -37,7 +37,8 @@ class ExpenseResponse(BaseModel):
     id: str
     trip_id: str
     description: str
-    amount: float
+    amount: int # in kobo
+    amount_in_naira: float
     date: datetime
     note: Optional[str]
     paid_by: UserMini
@@ -48,7 +49,7 @@ class ExpenseResponse(BaseModel):
 class UserResponse(BaseModel):
   model_config = ConfigDict(from_attributes=True)
   id: str
-  name: str
+  username: str
 
 class UserCreate(BaseModel):
     username: str
@@ -77,7 +78,8 @@ class UserResponse(BaseModel):
     full_name: str
     email: str
     disabled: Optional[bool]
-    wallet_balance: float
+    wallet_balance: int # in kobo
+    wallet_balance_in_naira: float
     created_at: datetime
     # trips: List[TripResponse] = []
     # expenses_created: List[ExpenseMini] = []

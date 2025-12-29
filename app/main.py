@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.models import User
 from app.database import get_session, AsyncSession
 from app.auth import get_password_hash
-from app.schemas import UserListResponse, UserCreate
+from app.schemas import UserListResponse, UserCreate, UserResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Annotated
 from app.auth import authenticate_user, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, Token
@@ -80,7 +80,7 @@ async def login_for_access_token(
     return Token(user_id=user.id, access_token=access_token, token_type="bearer")
 
 
-@app.get("/users/me/", response_model=User)
+@app.get("/current_user", response_model=UserResponse)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
