@@ -51,7 +51,14 @@ cd scale-trip
 4. Create a .env file with your database URL:
 
 ```bash
-DATABASE_URL=postgresql+asyncpg://username:password@localhost:5432/scale_trip
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+POSTGRES_DB=dbname
+DATABASE_URL=postgresql+asyncpg://username:password@db:5432/scale_trip
+SECRET_KEY=secret
+ALGORITHM=algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES=minutes
+
 ```
 
 ## **Running the Application Locally**
