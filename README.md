@@ -23,11 +23,11 @@
 - **PostgreSQL** – relational database
 - **asyncpg** – async PostgreSQL driver
 - **Uvicorn** – ASGI server
-- **Docker (optional)** – containerization for deployment
+- **Docker & Docker Compose** – containerization for local development and deployment
 
 ---
 
-## **Installation**
+## **Installation (Local without Docker)**
 
 1. Clone the repository:
 
@@ -35,76 +35,118 @@
 git clone https://github.com/wineshuga/scale-trip.git
 cd scale-trip
 ```
-
 2. Create a virtual environment and activate it:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+  python3 -m venv .venv
+  source .venv/bin/activate
 ```
 
 3. Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+  pip install -r requirements.txt
 ```
 
 4. Create a .env file with your database URL:
 
 ```bash
-DATABASE_URL=postgresql+asyncpg://username:password@localhost:5432/scale_trip
+POSTGRES_USER=user
+POSTGRES_PASSWORD=password
+POSTGRES_DB=dbname
+DATABASE_URL=postgresql+asyncpg://username:password@db:5432/scale_trip
+SECRET_KEY=secret
+ALGORITHM=algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES=minutes
+
 ```
 
----
+## **Running the Application Locally**
+```bash
+  uvicorn app.main:app --reload
+```
 
-## **Running the Application**
+Open your browser at http://127.0.0.1:8000
 
-1. Start the FastAPI server:
+Interactive API docs: http://127.0.0.1:8000/docs
+
+## **Running with Docker**
+
+You can run the app and PostgreSQL together using Docker Compose.
+
+ - Build and start containers:
+  
+```bash
+  docker-compose up --build
+```
+
+Access the API at http://127.0.0.1:8000
+
+Interactive API docs: http://127.0.0.1:8000/docs
+
+- To stop containers:
 
 ```bash
-uvicorn app.main:app --reload
+  docker-compose down
 ```
 
-2. Open your browser at http://127.0.0.1:8000
+Notes:
 
-3. Interactive API docs: http://127.0.0.1:8000/docs
+The docker-compose.yml sets up both the FastAPI app and PostgreSQL database.
+
+Database data is persisted using Docker volumes.
+
+Environment variables are read from .env automatically in the containers.
 
 ## **Project Structure**
 ```bash
 scale-trip/
 ├── app/
+|   ├── routers/        # Application routers and endpoints
+|   ├── services/       # Application logic
+|   ├── auth.py         # User authentication
 │   ├── main.py         # FastAPI app and routes
 │   ├── models.py       # SQLModel database models
 │   ├── database.py     # DB engine and async session setup
+|   ├── schemas.py     
 │   └── config.py       # Environment configuration
-├── .env                # Environment variables (not committed)
+├── docker-compose.yml  # Docker Compose configuration
+├── Dockerfile          # Dockerfile for the FastAPI app
+├── .env                # Environment variables 
 ├── requirements.txt    # Python dependencies
 └── README.md           # Project documentation
 ```
-
 ## **Usage**
 
 - Users
-   - POST /users → create a new user
-   - GET /users → list all users
-   - GET /users/{user_id} → retrieve a single user
+
+  - POST /users → create a new user
+  - GET /users → list all users
+  - GET /users/{user_id} → retrieve a single user
 
 - Trips
+
   - POST /trips → create a new trip
   - GET /trips → list all trips
   - GET /trips/{trip_id} → retrieve a single trip
 
 - Expenses
-  - POST /expenses → create a new trip
-  - GET /expenses → list all trips
-  - GET /expenses/{expense_id} → retrieve a single trip
-    
-## **Next Steps / Future Features**
 
-- Track balances per participant
+  - POST /expenses → create a new expense
+  - GET /expenses → list all expenses
+  - GET /expenses/{expense_id} → retrieve a single expense
+
+- Payments
+  - GET /wallet/{user_id} → get user wallet details
+  - POST /wallet/topup-request → mock paystack wallet top up
+  - POST /wallet/confirm → Admin/dev endpoint for topup confirmation
+  - POST /wallet/pay → execute payment using calculated balance
+
+## **Future Features**
+
+- Dockerized production deployment on AWS ECS/Fargate
+- Track user payment status
 - Integrate wallets and 3rd-party payment (Paystack)
-- Dockerize the application for deployment
-- Authentication and user management
+- Trip invite links
 
 ## **License**
-
