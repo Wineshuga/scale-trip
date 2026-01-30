@@ -61,15 +61,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES=minutes
 
 ```
 
-## **Running the Application Locally**
-```bash
-  uvicorn app.main:app --reload
-```
-
-Open your browser at http://127.0.0.1:8000
-
-Interactive API docs: http://127.0.0.1:8000/docs
-
 ## **Running with Docker**
 
 You can run the app and PostgreSQL together using Docker Compose.
@@ -145,8 +136,7 @@ scale-trip/
 ## **Future Features**
 
 - Dockerized production deployment on AWS ECS/Fargate
-- Track user payment status
+- Track user payment status and history
 - Integrate wallets and 3rd-party payment (Paystack)
-- Trip invite links
 
 ## **License**
