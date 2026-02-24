@@ -6,7 +6,31 @@ from app.schemas import WalletResponse, WalletBalanceResponse, TopupRequest, Pay
 
 router = APIRouter(prefix="/wallet", tags=["Wallet"])
 
-# get payer id, payee id, trip id, amount from Settlement calculation
+@router.get("/payment-history/")
+async def get_payment_history(session: AsyncSession = Depends(get_session)):
+    try:
+        payments = await session.execute(select(Payment))
+        payments_list = payments.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "message": "Payment history retrieved successfully",
+        "result": payments_list
+    }
+
+@router.get("/payment-history/{user_id}")
+async def get_user_payment_history(user_id: str, session: AsyncSession = Depends(get_session)):
+    try:
+        payments = await session.execute(select(Payment).where((Payment.payer_id == user_id) | (Payment.payee_id == user_id)))
+        payments_list = payments.scalars().all()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {
+        "message": "Payment history retrieved successfully",
+        "result": payments_list
+    }
 
 @router.get("/{user_id}", response_model=WalletResponse)
 async def get_wallet(user_id: str, session: AsyncSession = Depends(get_session)):
